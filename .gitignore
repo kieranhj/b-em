@@ -40,3 +40,5 @@ cmos*.bin
 /discs
 /tapes
 /uef
+Debug
+Release

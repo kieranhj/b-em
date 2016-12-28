@@ -2,7 +2,7 @@
   OpenAL interface*/
 
 #include <stdio.h>
-#include <AL/al.h>
+#include <al.h>
 #include <AL/alut.h>
 #include "b-em.h"
 #include "sound.h"

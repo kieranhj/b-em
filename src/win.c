@@ -180,6 +180,8 @@ static void initmenu()
         CheckMenuItem(hmenu, IDM_VIDEO_RESIZE, (videoresize) ? MF_CHECKED : MF_UNCHECKED);
 
         CheckMenuItem(hmenu, IDM_SPD_100, MF_CHECKED);
+
+		EnableMenuItem(hmenu, ID_FILE_STOPVGMLOGGING, MF_DISABLED);
 }
 
 static HANDLE mainthread;
@@ -533,6 +535,27 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         main_cleardrawit();
                         LeaveCriticalSection(&cs);
                         break;
+
+						case ID_FILE_STARTVGMLOGGING:
+							EnterCriticalSection(&cs);
+							if (!getsfile(hwnd, "VGM sound file (*.VGM)\0*.VGM\0All\0*.*\0\0", sn_vgmname, "VGM"))
+							{
+								sn_startlog();
+								EnableMenuItem(hmenu, ID_FILE_STOPVGMLOGGING, MF_ENABLED);
+								EnableMenuItem(hmenu, ID_FILE_STARTVGMLOGGING, MF_DISABLED);
+							}
+							main_cleardrawit();
+							LeaveCriticalSection(&cs);
+							break;
+						case ID_FILE_STOPVGMLOGGING:
+							EnterCriticalSection(&cs);
+							sn_stoplog();
+							EnableMenuItem(hmenu, ID_FILE_STOPVGMLOGGING, MF_DISABLED);
+							EnableMenuItem(hmenu, ID_FILE_STARTVGMLOGGING, MF_ENABLED);
+							main_cleardrawit();
+							LeaveCriticalSection(&cs);
+							break;
+
 
                         case IDM_FILE_EXIT:
                         PostQuitMessage (0);       /* send a WM_QUIT to the message queue */

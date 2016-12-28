@@ -44,3 +44,6 @@ Debug
 Release
 b-em.iobj
 b-em.ipdb
+src/allegro.log
+src/b-em.vcxproj.filters
+src/b-em.vcxproj.filters

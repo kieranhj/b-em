@@ -4,6 +4,11 @@ void sn_write(uint8_t data);
 void sn_savestate(FILE *f);
 void sn_loadstate(FILE *f);
 
+void sn_startlog();
+void sn_stoplog();
+void sn_logsound();
+extern char sn_vgmname[260];
+
 extern uint8_t sn_freqhi[4],sn_freqlo[4];
 extern uint8_t sn_vol[4];
 extern uint8_t sn_noise;

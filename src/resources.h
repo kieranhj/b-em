@@ -12,6 +12,8 @@
 #define IDM_FILE_LSTATE      40001
 #define IDM_FILE_SSTATE      40002
 #define IDM_FILE_EXIT        40003
+#define ID_FILE_STARTVGMLOGGING        40004
+#define ID_FILE_STOPVGMLOGGING         40005
 #define IDM_DISC_LOAD_0      40010
 #define IDM_DISC_LOAD_1      40011
 #define IDM_DISC_EJECT_0     40012

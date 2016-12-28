@@ -18,6 +18,13 @@ static int lasttone;
 static fixed sn_count[4], sn_stat[4];
 uint32_t sn_latch[4];
 
+char sn_vgmname[260];
+static FILE *snlog, *snlog2;
+static unsigned char vgmdat[1024]; /*Data for VGM writing*/
+static int vgmpos = 0;
+static int logging = 0;
+static int vgmsamples;
+
 static int sn_rect_pos = 0,sn_rect_dir = 0;
 
 int curwave = 0;
@@ -166,6 +173,12 @@ void sn_write(uint8_t data)
 {
         int freq;
 
+		if (logging && vgmpos != 1024)	// && data != lastdat)
+		{
+			vgmdat[vgmpos++] = 0x50;
+			vgmdat[vgmpos++] = data;
+		}
+
         if (data & 0x80)
         {
                 firstdat = data;
@@ -251,4 +264,98 @@ void sn_loadstate(FILE *f)
         fread(sn_vol,   4,  1, f);
         sn_noise = getc(f);
         sn_shift = getc(f); sn_shift |= getc(f) << 8;
+}
+
+void sn_startlog()
+{
+	// Copied from B-Em v1.5
+	int c;
+	if (snlog)
+		fclose(snlog);
+	if (snlog2)
+		fclose(snlog2);
+	vgmsamples = vgmpos = 0;
+	logging = 1;
+	snlog = fopen("temp.vgm", "wb");
+	snlog2 = fopen(sn_vgmname, "wb");
+	putc('V', snlog);
+	putc('g', snlog);
+	putc('m', snlog);
+	putc(' ', snlog);
+	/*We don't know file length yet so just store 0*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*Version number - 1.50*/
+	putc(0x50, snlog); putc(1, snlog); putc(0, snlog); putc(0, snlog);
+	/*Clock speed - 4mhz*/
+	putc(4000000 & 255, snlog);
+	putc(4000000 >> 8, snlog);
+	putc(4000000 >> 16, snlog);
+	putc(4000000 >> 24, snlog);
+	/*We don't have an FM chip*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*We don't have an GD3 tag*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*We don't know total samples*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*No looping*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*50hz. This is true even in NTSC mode as the sound log is always updated at 50hz*/
+	putc(50, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*White noise feedback pattern & length*/
+	putc(3, snlog); putc(0, snlog); putc(15, snlog); putc(0, snlog);
+	/*We don't have an FM chip*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*We don't have an FM chip*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*Data offset*/
+	putc(0xC, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	/*Reserved*/
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+//	putc(0, snlog); putc(0, snlog); putc(0, snlog); putc(0, snlog);
+}
+
+void sn_stoplog()
+{
+	// Copied from B-Em v1.5
+	int c, len;
+	unsigned char buffer[32];
+
+	putc(0x66, snlog);
+	len = ftell(snlog) - 4;			// relative to start of file
+	fclose(snlog);
+	snlog = fopen("temp.vgm", "rb");
+	for (c = 0; c<4; c++) putc(getc(snlog), snlog2);
+	putc(len, snlog2);
+	putc(len >> 8, snlog2);
+	putc(len >> 16, snlog2);
+	putc(len >> 24, snlog2);
+	for (c = 0; c<4; c++) getc(snlog);
+	for (c = 0; c<16; c++) putc(getc(snlog), snlog2);
+	putc(vgmsamples, snlog2);
+	putc(vgmsamples >> 8, snlog2);
+	putc(vgmsamples >> 16, snlog2);
+	putc(vgmsamples >> 24, snlog2);
+	for (c = 0; c<4; c++) getc(snlog);
+	while (!feof(snlog))
+	{
+		putc(getc(snlog), snlog2);
+	}
+	fclose(snlog2);
+	fclose(snlog);
+	remove("temp.vgm");
+	//        printf("%08X samples\n",vgmsamples);
+	logging = 0;
+}
+
+void sn_logsound()
+{
+	if (!logging)
+		return;
+
+	if (vgmpos) fwrite(vgmdat, vgmpos, 1, snlog);
+	putc(0x63, snlog);
+	vgmsamples += 882;
+	vgmpos = 0;
 }

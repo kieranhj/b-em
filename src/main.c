@@ -335,6 +335,7 @@ void main_run()
                         ddnoiseframes = 0;
                         ddnoise_mix();
                 }
+				sn_logsound();		// VGM logging
                 key_check();
                 poll_joystick();
                 for (c = 0; c < 2; c++)

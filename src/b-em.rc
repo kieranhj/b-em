@@ -121,7 +121,10 @@ BEGIN
                 MENUITEM SEPARATOR
                 MENUITEM "&Load state",         IDM_FILE_LSTATE
                 MENUITEM "&Save state",         IDM_FILE_SSTATE
-                MENUITEM SEPARATOR
+				MENUITEM SEPARATOR
+				MENUITEM "Start &VGM logging...",	ID_FILE_STARTVGMLOGGING
+				MENUITEM "S&top VGM logging",		ID_FILE_STOPVGMLOGGING
+				MENUITEM SEPARATOR
                 MENUITEM "E&xit",               IDM_FILE_EXIT
         END
         POPUP "&Disc"

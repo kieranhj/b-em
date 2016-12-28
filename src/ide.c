@@ -31,7 +31,9 @@ void ide_close()
 
 void ide_init(void)
 {
-        char s[256];
+		if (!ide_enable) return;
+		
+		char s[256];
         ide.pos2 = 1;
         ide.atastat = 0x40;
         ide_count = 0;

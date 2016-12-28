@@ -799,7 +799,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         case IDM_SPD_10: case IDM_SPD_25: case IDM_SPD_50: case IDM_SPD_75: case IDM_SPD_100:
                         case IDM_SPD_150: case IDM_SPD_200: case IDM_SPD_300: case IDM_SPD_400: case IDM_SPD_500:
                         CheckMenuItem(hmenu, IDM_SPD_10 + emuspeed, MF_UNCHECKED);
-                        emuspeed = curmodel = LOWORD(wParam) - IDM_SPD_10;
+                        emuspeed = LOWORD(wParam) - IDM_SPD_10;
                         changetimerspeed(timerspeeds[emuspeed]);
                         vid_fskipmax = frameskips[emuspeed];
                         CheckMenuItem(hmenu, IDM_SPD_10 + emuspeed, MF_CHECKED);

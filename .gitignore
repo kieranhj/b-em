@@ -42,3 +42,5 @@ cmos*.bin
 /uef
 Debug
 Release
+b-em.iobj
+b-em.ipdb

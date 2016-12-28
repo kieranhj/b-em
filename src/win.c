@@ -184,7 +184,7 @@ static void initmenu()
 
 static HANDLE mainthread;
 
-static int bempause = 0, bemwaiting = 0;
+static int bempause = 0, bemwaiting = 0, bemstep = 0;
 static int doautoboot = 0;
 
 void _mainthread(PVOID pvoid)
@@ -199,15 +199,16 @@ void _mainthread(PVOID pvoid)
 
         while (1)
         {
-                if (bempause)
+                if (bempause && !bemstep)
                 {
                         bemwaiting = 1;
-                        Sleep(100);
+                        //Sleep(100);
                 }
                 else
                 {
                         bemwaiting = 0;
                         main_run();
+						bemstep = 0;
                 }
                 if (doautoboot)
                 {
@@ -913,6 +914,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                         if (LOWORD(wParam) == VK_NEXT)   c = KEY_PGDN;
                         //rpclog("MVK2 %i %i %i\n",c,hw_to_mycode[c],KEY_PGUP);
                         key[c]=1;
+
+						if (c == KEY_PGDN) bempause ^= 1;		// let PAGE DOWN be toggle pause
+						if (c == KEY_RIGHT && bempause) bemstep = 1;		// let CURSOR RIGHT be step if paused
                 }
                 break;
                 case WM_SYSKEYUP:

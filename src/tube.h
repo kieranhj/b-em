@@ -18,6 +18,7 @@ extern int tube_shift;
 extern int tube_6502_speed;
 
 extern int tube_irq;
+extern int tube_type;
 
 void tube_reset();
 void tube_updatespeed();

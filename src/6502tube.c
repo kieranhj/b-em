@@ -18,12 +18,9 @@ static int tube_6502_skipint;
 static int tube_6502_oldnmi;
 
 /*6502 registers*/
-static uint8_t a,x,y,s;
-static uint16_t pc;
-static struct
-{
-        int c,z,i,d,v,n;
-} tubep;
+uint8_t a,x,y,s;
+uint16_t pc;
+TUBEPREG tubep;
 
 /*Memory structures*/
 /*There is an extra entry to allow for stupid programs (3d grand prix) doing
@@ -81,7 +78,7 @@ void tube_6502_mapoutrom()
 
 #define polltime(c) { tubecycles-=c; }
 
-static uint8_t tubereadmeml(uint16_t addr)
+uint8_t tubereadmeml(uint16_t addr)
 {
         uint8_t temp;
         if ((addr&~7)==0xFEF8)

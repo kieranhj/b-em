@@ -11,6 +11,8 @@ extern int fcount;
 #include <process.h>
 #include "b-em.h"
 #include "debugger.h"
+#include "tube.h"
+#include "6502tube.h"
 
 static HANDLE debugthread;
 static HWND dhwnd;
@@ -19,6 +21,7 @@ static char DebugszClassName[ ] = "B-emDebugWnd";
 LRESULT CALLBACK DebugWindowProcedure (HWND, UINT, WPARAM, LPARAM);
 static HINSTANCE hinst;
 static uint8_t *usdat;
+static int tubecontext = 0;
 
 void _debugthread(PVOID pvoid)
 {
@@ -234,13 +237,21 @@ void debug_start()
 int readc[65536], writec[65536], fetchc[65536];
 
 static uint16_t debug_memaddr=0;
+static uint16_t debug_tubememaddr = 0;
 static uint16_t debug_disaddr=0;
+static uint16_t debug_tubedisaddr = 0;
 static uint8_t  debug_lastcommand=0;
 
 static uint8_t debug_readmem(uint16_t addr)
 {
         if (addr >= 0xFC00 && addr < 0xFF00) return 0xFF;
         return readmem(addr);
+}
+
+static uint8_t debug_readtubemem(uint16_t addr)
+{
+	if (addr >= 0xFC00 && addr < 0xFF00) return 0xFF;
+	return tubereadmeml(addr);
 }
 
 enum
@@ -418,6 +429,97 @@ static void debug_disassemble()
         }
         debug_disaddr++;
 //        WriteConsole(consf,"\n",strlen("\n"),NULL,NULL);
+}
+
+static void debug_tubedisassemble()
+{
+	uint16_t temp;
+	char s[256];
+	uint8_t op = debug_readtubemem(debug_tubedisaddr);
+	uint8_t p1 = debug_readtubemem(debug_tubedisaddr + 1), p2 = debug_readtubemem(debug_tubedisaddr + 2);
+	sprintf(s, "%04X : ", debug_tubedisaddr);
+	debug_out(s);
+	debug_out(MASTER ? dopname[op] : dopnamenmos[op]);
+	debug_out(" ");
+	switch (MASTER ? dopaddr[op] : dopaddrnmos[op])
+	{
+	case IMP:
+		sprintf(s, "        ");
+		debug_out(s);
+		break;
+	case IMPA:
+		sprintf(s, "A       ");
+		debug_out(s);
+		break;
+	case IMM:
+		sprintf(s, "#%02X     ", p1);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	case ZP:
+		sprintf(s, "%02X      ", p1);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	case ZPX:
+		sprintf(s, "%02X,X    ", p1);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	case ZPY:
+		sprintf(s, "%02X,Y    ", p1);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	case IND:
+		sprintf(s, "(%02X)    ", p1);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	case INDX:
+		sprintf(s, "(%02X,X)  ", p1);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	case INDY:
+		sprintf(s, "(%02X),Y  ", p1);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	case ABS:
+		sprintf(s, "%02X%02X    ", p2, p1);
+		debug_out(s);
+		debug_tubedisaddr += 2;
+		break;
+	case ABSX:
+		sprintf(s, "%02X%02X,X  ", p2, p1);
+		debug_out(s);
+		debug_tubedisaddr += 2;
+		break;
+	case ABSY:
+		sprintf(s, "%02X%02X,Y  ", p2, p1);
+		debug_out(s);
+		debug_tubedisaddr += 2;
+		break;
+	case IND16:
+		sprintf(s, "(%02X%02X)  ", p2, p1);
+		debug_out(s);
+		debug_tubedisaddr += 2;
+		break;
+	case IND1X:
+		sprintf(s, "(%02X%02X,X)", p2, p1);
+		debug_out(s);
+		debug_tubedisaddr += 2;
+		break;
+	case BRA:
+		temp = debug_tubedisaddr + 2 + (signed char)p1;
+		sprintf(s, "%04X    ", temp);
+		debug_out(s);
+		debug_tubedisaddr++;
+		break;
+	}
+	debug_tubedisaddr++;
+	//        WriteConsole(consf,"\n",strlen("\n"),NULL,NULL);
 }
 
 static int breakpoints[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
@@ -640,6 +742,16 @@ void debugger_do()
                                 debug_out(outs);
                                 sprintf(outs, "    Status : %c%c%c%c%c%c\n", (p.n) ? 'N' : ' ', (p.v) ? 'V' : ' ', (p.d) ? 'D' : ' ', (p.i) ? 'I' : ' ', (p.z) ? 'Z' : ' ', (p.c) ? 'C' : ' ');
                                 debug_out(outs);
+
+								if (tube_exec && tubecontext)
+								{
+									sprintf(outs, "    Tube 6502 registers :\n");
+									debug_out(outs);
+									sprintf(outs, "    A=%02X X=%02X Y=%02X S=01%02X PC=%04X\n", tubea, tubex, tubey, tubesp, tubepc);
+									debug_out(outs);
+									sprintf(outs, "    Status : %c%c%c%c%c%c\n", (tubep.n) ? 'N' : ' ', (tubep.v) ? 'V' : ' ', (tubep.d) ? 'D' : ' ', (tubep.i) ? 'I' : ' ', (tubep.z) ? 'Z' : ' ', (tubep.c) ? 'C' : ' ');
+									debug_out(outs);
+								}
                         }
                         break;
                         case 's': case 'S':
@@ -827,6 +939,68 @@ void debugger_do()
                                 writemem(e, f);
                         }
                         break;
+						case 't': case 'T':
+							if (!strncasecmp(ins, "tube", 4))
+							{
+								if (!params)
+								{
+									if (!tube_exec)
+									{
+										sprintf(outs, "    No Tube active.\n");
+										debug_out(outs);
+									}
+									else if (tube_type != 1)
+									{
+										sprintf(outs, "    Tube active but not 6502.\n");
+										debug_out(outs);
+									}
+									else
+									{
+										sprintf(outs, "    6502 Tube active.  Debugging is %s.\n", tubecontext ? "ON" : "OFF");
+										debug_out(outs);
+									}
+								}
+								else
+								{
+									sscanf(&ins[d], "%X", &e);
+									tubecontext = e ? 1 : 0;
+								}
+							}
+							if (!strncasecmp(ins, "tmem", 4))
+							{
+								if (params) sscanf(&ins[d], "%X", (unsigned int *)&debug_tubememaddr);
+								for (c = 0; c < 16; c++)
+								{
+									sprintf(outs, "    %04X : ", debug_tubememaddr);
+									debug_out(outs);
+									for (d = 0; d < 16; d++)
+									{
+										sprintf(outs, "%02X ", debug_readtubemem(debug_tubememaddr + d));
+										debug_out(outs);
+									}
+									debug_out("  ");
+									for (d = 0; d < 16; d++)
+									{
+										temp = debug_readtubemem(debug_tubememaddr + d);
+										if (temp < 32) sprintf(outs, ".");
+										else           sprintf(outs, "%c", temp);
+										debug_out(outs);
+									}
+									debug_tubememaddr += 16;
+									debug_out("\n");
+								}
+							}
+							if (!strncasecmp(ins, "tdis", 4))
+							{
+								if (params) sscanf(&ins[d], "%X", (unsigned int *)&debug_tubedisaddr);
+								for (c = 0; c < 12; c++)
+								{
+									debug_out("    ");
+									debug_tubedisassemble();
+									debug_out("\n");
+								}
+							}
+							break;
                         case 'q': case 'Q':
                         setquit();
                         while (1);

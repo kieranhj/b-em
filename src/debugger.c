@@ -631,7 +631,14 @@ void debugger_do()
                                         sprintf(outs, "    Voice 3 frequency = %04X   volume = %i\n", sn_latch[3] >> 6, sn_vol[3]);
                                         debug_out(outs);
                                 }
-                        }
+								if (!strncasecmp(&ins[d], "ram", 3))
+								{
+									sprintf(outs, "    System RAM registers :\n");
+									debug_out(outs);
+									sprintf(outs, "    ROMSEL=%02X ram4k=%02X ram8k=%02X ram12k=%02X ram20k=%02X vidbank=%04X\n", romsel>>14, ram4k, ram8k, ram12k, ram20k, vidbank);
+									debug_out(outs);
+								}
+						}
                         else
                         {
                                 sprintf(outs, "    6502 registers :\n");
@@ -868,7 +875,9 @@ void debugger_do()
                         debug_out(outs);
                         sprintf(outs, "    r sound    - print Sound registers\n");
                         debug_out(outs);
-                        sprintf(outs, "    s [n]      - step n instructions (or 1 if no parameter)\n\n");
+						sprintf(outs, "    r ram      - print RAM registers\n");
+						debug_out(outs);
+						sprintf(outs, "    s [n]      - step n instructions (or 1 if no parameter)\n\n");
                         debug_out(outs);
                         sprintf(outs, "    watchr n   - watch reads from address n\n");
                         debug_out(outs);

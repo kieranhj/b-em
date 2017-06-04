@@ -47,8 +47,8 @@ int timetolive = 0;
 
 static int cycles;
 static int otherstuffcount=0;
-static int romsel;
-static int ram4k, ram8k, ram12k, ram20k;
+int romsel;
+int ram4k, ram8k, ram12k, ram20k;
 
 static int FEslowdown[8] = {1, 0, 1, 1, 0, 0, 1, 0};
 static int RAMbank[16]   = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

@@ -16,6 +16,9 @@ extern int nmi;
 
 extern uint8_t opcode;
 
+extern int romsel;
+extern int ram4k, ram8k, ram12k, ram20k;
+
 void m6502_reset();
 void m6502_exec();
 void m65c02_exec();

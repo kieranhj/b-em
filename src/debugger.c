@@ -602,8 +602,8 @@ void debugger_do()
                                         debug_out(outs);
                                         sprintf(outs, "    R9 =%02X  R10=%02X  R11=%02X  R12=%02X  R13=%02X  R14=%02X  R15=%02X  R16=%02X  R17=%02X\n", crtc[9], crtc[10], crtc[11], crtc[12], crtc[13], crtc[14], crtc[15], crtc[16], crtc[17]);
                                         debug_out(outs);
-                                        sprintf(outs, "    VC=%i SC=%i HC=%i MA=%04X\n", vc, sc, hc, ma);
-                                        debug_out(outs);
+										sprintf(outs, "    VC=%i SC=%i HC=%i MA=%04X scrx=%i scry=%d\n", vc, sc, hc, ma, scrx, scry);
+										debug_out(outs);
                                 }
                                 if (!strncasecmp(&ins[d],"vidproc",7))
                                 {

@@ -617,7 +617,13 @@ void debugger_do()
                                         debug_out(outs);
                                         sprintf(outs, "     8=%01X   9=%01X  10=%01X  11=%01X  12=%01X  13=%01X  14=%01X  15=%01X\n", ula_palbak[8], ula_palbak[9], ula_palbak[10], ula_palbak[11], ula_palbak[12], ula_palbak[13], ula_palbak[14], ula_palbak[15]);
                                         debug_out(outs);
-                                }
+										sprintf(outs, "    NULA palette :\n");
+										debug_out(outs);
+										sprintf(outs, "     0=%06X   1=%06X   2=%06X   3=%06X   4=%06X   5=%06X   6=%06X   7=%06X\n", nula_collook[0], nula_collook[1], nula_collook[2], nula_collook[3], nula_collook[4], nula_collook[5], nula_collook[6], nula_collook[7]);
+										debug_out(outs);
+										sprintf(outs, "     8=%06X   9=%06X  10=%06X  11=%06X  12=%06X  13=%06X  14=%06X  15=%06X\n", nula_collook[8], nula_collook[9], nula_collook[10], nula_collook[11], nula_collook[12], nula_collook[13], nula_collook[14], nula_collook[15]);
+										debug_out(outs);
+								}
                                 if (!strncasecmp(&ins[d],"sound",5))
                                 {
                                         sprintf(outs, "    Sound registers :\n");

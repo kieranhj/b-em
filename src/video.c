@@ -86,52 +86,96 @@ void crtc_loadstate(FILE *f)
 
 /*Video ULA (VIDPROC)*/
 uint8_t ula_ctrl;
-static uint8_t ula_pal[16];
-uint8_t ula_palbak[16];
+static int ula_pal[16];					// maps from actual physical colour to bitmap display
+uint8_t ula_palbak[16];					// palette RAM in orginal ULA maps actual colour to logical colour
 static int ula_mode;
 static int crtc_mode;
-static int collook[8];
+int nula_collook[16];					// maps palette (logical) colours to 12-bit RGB
 
 static uint8_t table4bpp[4][256][16];
+
+static int nula_pal_write_flag = 0;
+static uint8_t nula_pal_first_byte;
+static uint8_t nula_flash[8];
 
 void videoula_write(uint16_t addr, uint8_t val)
 {
         int c;
 //        rpclog("ULA write %04X %02X %i %i\n",addr,val,hc,vc);
-        if (!(addr & 1))
-        {
-//        printf("ULA write %04X %02X\n",addr,val);
-                if ((ula_ctrl ^ val) & 1)
-                {
-                        if (val & 1)
-                        {
-                                for (c = 0; c < 16; c++)
-                                {
-                                        if (ula_palbak[c]&8) ula_pal[c]=collook[ula_palbak[c] & 7];
-                                        else                 ula_pal[c]=collook[(ula_palbak[c] & 7) ^ 7];
-                                }
-                        }
-                        else
-                        {
-                                for (c = 0; c < 16; c++)
-                                    ula_pal[c]=collook[(ula_palbak[c] & 7) ^ 7];
-                        }
-                }
-                ula_ctrl=val;
-                ula_mode=(ula_ctrl >> 2) & 3;
-                if (val&2)         crtc_mode=0;
-                else if (val&0x10) crtc_mode=1;
-                else               crtc_mode=2;
-//                printf("ULAmode %i\n",ulamode);
-        }
-        else
-        {
-//        rpclog("ULA write %04X %02X\n",addr,val);
-                c = ula_palbak[val >> 4];
-                ula_palbak[val >> 4] = val & 15;
-                ula_pal[val >> 4] = collook[(val & 7) ^ 7];
-                if (val & 8 && ula_ctrl & 1) ula_pal[val >> 4] = collook[val & 7];
-        }
+
+		switch (addr & 3)
+		{
+		case 0:
+		{
+			//        printf("ULA write %04X %02X\n",addr,val);
+			if ((ula_ctrl ^ val) & 1)
+			{
+				if (val & 1)
+				{
+					for (c = 0; c < 16; c++)
+					{
+						if ((ula_palbak[c] & 8) && nula_flash[c-8]) ula_pal[c] = nula_collook[ula_palbak[c] & 15];
+						else                 ula_pal[c] = nula_collook[(ula_palbak[c] & 15) ^ 7];
+					}
+				}
+				else
+				{
+					for (c = 0; c < 16; c++)
+						ula_pal[c] = nula_collook[(ula_palbak[c] & 15) ^ 7];
+				}
+			}
+			ula_ctrl = val;
+			ula_mode = (ula_ctrl >> 2) & 3;
+			if (val & 2)         crtc_mode = 0;
+			else if (val & 0x10) crtc_mode = 1;
+			else               crtc_mode = 2;
+			//                printf("ULAmode %i\n",ulamode);
+		}
+		break;
+
+		case 1:
+		{
+			//        rpclog("ULA write %04X %02X\n",addr,val);
+			c = ula_palbak[val >> 4];
+			ula_palbak[val >> 4] = val & 15;
+			ula_pal[val >> 4] = nula_collook[(val & 15) ^ 7];
+			if ((val & 8) && (ula_ctrl & 1) && nula_flash[val - 8]) ula_pal[val >> 4] = nula_collook[val & 15];
+		}
+		break;
+		
+		case 2:			// &FE22 = NULA CONTROL REG
+		{
+			// TODO
+		}
+		break;
+
+		case 3:			// &FE23 = NULA PALETTE REG
+		{
+			if (nula_pal_write_flag)
+			{
+				// Commit the write to palette
+				int c = (nula_pal_first_byte >> 4);
+				nula_collook[c] = makecol((nula_pal_first_byte & 0x0f) << 4, (val & 0xf0) << 0, (val & 0x0f) << 4);
+				// Manual states colours 8-15 are set solid by default
+				if (c & 8) nula_flash[c - 8] = 0;
+				// Reset all colour lookups
+				for (c = 0; c < 16; c++)
+				{
+					ula_pal[c] = nula_collook[(ula_palbak[c] & 15) ^ 7];
+					if ((ula_palbak[c] & 8) && (ula_ctrl & 1) && nula_flash[ula_palbak[c] - 8]) ula_pal[c] = nula_collook[ula_palbak[c] & 15];
+				}
+			}
+			else
+			{
+				// Remember the first byte
+				nula_pal_first_byte = val;
+			}
+
+			nula_pal_write_flag = !nula_pal_write_flag;
+		}
+		break;
+
+		}
 }
 
 void videoula_savestate(FILE *f)
@@ -278,13 +322,13 @@ static inline void mode7_render(uint8_t dat)
         {
                 for (c = 0; c < 16; c++)
                 {
-                        b->line[scry][scrx + c + 16] = collook[0];
+                        b->line[scry][scrx + c + 16] = nula_collook[0];
                 }
                 if (vid_linedbl)
                 {
                         for (c = 0; c < 16; c++)
                         {
-                                b->line[scry + 1][scrx + c + 16] = collook[0];
+                                b->line[scry + 1][scrx + c + 16] = nula_collook[0];
                         }
                 }
                 return;
@@ -445,20 +489,33 @@ void video_init()
         b16  = create_bitmap(832, 614);
         set_color_depth(32);
         b32  = create_bitmap(1536, 800);
-        set_color_depth(8);
 
-        generate_332_palette(pal);
-        set_palette(pal);
+		set_color_depth(8);
+	    generate_332_palette(pal);
+		set_palette(pal);
 
-        collook[0] = makecol(0, 0, 0);
-        col0 = collook[0] | (collook[0] << 8) | (collook[0] << 16) | (collook[0] << 24);
-        collook[1] = makecol(255, 0,   0);
-        collook[2] = makecol(0,   255, 0);
-        collook[3] = makecol(255, 255, 0);
-        collook[4] = makecol(0,   0,   255);
-        collook[5] = makecol(255, 0,   255);
-        collook[6] = makecol(0,   255, 255);
-        collook[7] = makecol(255, 255, 255);
+        nula_collook[0] = makecol(0, 0, 0);
+        col0 = nula_collook[0] | (nula_collook[0] << 8) | (nula_collook[0] << 16) | (nula_collook[0] << 24);
+		nula_collook[1] = makecol(255, 0,   0);
+		nula_collook[2] = makecol(0,   255, 0);
+		nula_collook[3] = makecol(255, 255, 0);
+		nula_collook[4] = makecol(0,   0,   255);
+		nula_collook[5] = makecol(255, 0,   255);
+		nula_collook[6] = makecol(0,   255, 255);
+		nula_collook[7] = makecol(255, 255, 255);
+		nula_collook[8] = makecol(0, 0, 0);
+		nula_collook[9] = makecol(255, 0, 0);
+		nula_collook[10] = makecol(0, 255, 0);
+		nula_collook[11] = makecol(255, 255, 0);
+		nula_collook[12] = makecol(0, 0, 255);
+		nula_collook[13] = makecol(255, 0, 255);
+		nula_collook[14] = makecol(0, 255, 255);
+		nula_collook[15] = makecol(255, 255, 255);
+
+		for (c = 0; c < 8; c++)
+		{
+			nula_flash[c] = 1;
+		}
         for (c = 0; c < 16; c++)
         {
                 for (d = 0; d < 64; d++)
@@ -494,7 +551,7 @@ void video_init()
         }
 //        set_palette(beebpal);
         b=create_bitmap(1280, 800);
-        clear_to_color(b, collook[0]);
+        clear_to_color(b, nula_collook[0]);
         for (c = 0; c < 256; c++) inverttbl[c]=makecol((63 - pal[c].r) << 2,(63 - pal[c].g) << 2,(63 - pal[c].b) << 2);
 }
 

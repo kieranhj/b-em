@@ -21,6 +21,7 @@ void videoula_loadstate(FILE *f);
 
 extern uint8_t ula_ctrl;
 extern uint8_t ula_palbak[16];
+extern int nula_collook[16];
 
 
 void video_init();

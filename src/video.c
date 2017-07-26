@@ -99,12 +99,25 @@ static uint8_t table4bpp[4][256][16];
 
 static int nula_pal_write_flag = 0;
 static uint8_t nula_pal_first_byte;
-static uint8_t nula_flash[8];
+uint8_t nula_flash[8];
+
+uint8_t nula_ctrl;
+
+uint8_t nula_palette_mode;
+uint8_t nula_horizontal_offset;
+uint8_t nula_left_blank;
+uint8_t nula_disable;
+uint8_t nula_attribute_mode;
+uint8_t nula_attribute_text;
+
 
 void videoula_write(uint16_t addr, uint8_t val)
 {
         int c;
 //        rpclog("ULA write %04X %02X %i %i\n",addr,val,hc,vc);
+
+		if (nula_disable)
+			addr &= ~2;			// nuke additional NULA addresses
 
 		switch (addr & 3)
 		{
@@ -148,7 +161,86 @@ void videoula_write(uint16_t addr, uint8_t val)
 		
 		case 2:			// &FE22 = NULA CONTROL REG
 		{
-			// TODO
+			uint8_t code = val >> 4;
+			uint8_t param = val & 0xf;
+
+			switch (code)
+			{
+			case 1:
+				nula_palette_mode = param & 1;
+				break;
+
+			case 2:
+				nula_horizontal_offset = param & 7;		// TODO
+				break;
+
+			case 3:
+				nula_left_blank = param & 15;			// TODO
+				break;
+
+			case 4:
+				// Reset NULA
+				nula_palette_mode = 0;
+				nula_horizontal_offset = 0;
+				nula_left_blank = 0;
+				nula_attribute_mode = 0;
+				nula_attribute_text = 0;
+
+				// Reset palette
+				nula_collook[0] = makecol(0, 0, 0);
+				nula_collook[1] = makecol(255, 0, 0);
+				nula_collook[2] = makecol(0, 255, 0);
+				nula_collook[3] = makecol(255, 255, 0);
+				nula_collook[4] = makecol(0, 0, 255);
+				nula_collook[5] = makecol(255, 0, 255);
+				nula_collook[6] = makecol(0, 255, 255);
+				nula_collook[7] = makecol(255, 255, 255);
+				nula_collook[8] = makecol(0, 0, 0);
+				nula_collook[9] = makecol(255, 0, 0);
+				nula_collook[10] = makecol(0, 255, 0);
+				nula_collook[11] = makecol(255, 255, 0);
+				nula_collook[12] = makecol(0, 0, 255);
+				nula_collook[13] = makecol(255, 0, 255);
+				nula_collook[14] = makecol(0, 255, 255);
+				nula_collook[15] = makecol(255, 255, 255);
+
+				// Reset flash
+				for (c = 0; c < 8; c++)
+				{
+					nula_flash[c] = 1;
+				}
+				break;
+
+			case 5:
+				nula_disable = TRUE;
+				break;
+
+			case 6:
+				nula_attribute_mode = param & 1;			// TODO
+				break;
+
+			case 7:
+				nula_attribute_text = param & 1;			// TODO
+				break;
+
+			case 8:
+				nula_flash[0] = param & 8;
+				nula_flash[1] = param & 4;
+				nula_flash[2] = param & 2;
+				nula_flash[3] = param & 1;
+				break;
+
+			case 9:
+				nula_flash[4] = param & 8;
+				nula_flash[5] = param & 4;
+				nula_flash[6] = param & 2;
+				nula_flash[7] = param & 1;
+				break;
+
+			default:
+				break;
+			}
+
 		}
 		break;
 
@@ -158,7 +250,10 @@ void videoula_write(uint16_t addr, uint8_t val)
 			{
 				// Commit the write to palette
 				int c = (nula_pal_first_byte >> 4);
-				nula_collook[c] = makecol((nula_pal_first_byte & 0x0f) << 4, (val & 0xf0) << 0, (val & 0x0f) << 4);
+				int r = nula_pal_first_byte & 0x0f;
+				int g = val & 0xf0 >> 4;
+				int b = val & 0x0f;
+				nula_collook[c] = makecol(r | r << 4, g | g << 4, b | b << 4);
 				// Manual states colours 8-15 are set solid by default
 				if (c & 8) nula_flash[c - 8] = 0;
 				// Reset all colour lookups
@@ -186,6 +281,7 @@ void videoula_savestate(FILE *f)
         int c;
         putc(ula_ctrl,f);
         for (c=0;c<16;c++) putc(ula_palbak[c],f);
+		// TODO NULA save state
 }
 
 void videoula_loadstate(FILE *f)
@@ -193,6 +289,7 @@ void videoula_loadstate(FILE *f)
         int c;
         videoula_write(0,getc(f));
         for (c=0;c<16;c++) videoula_write(1,getc(f)|(c<<4));
+		// TODO NULA load state
 }
 
 
@@ -675,14 +772,14 @@ void video_poll(int clocks)
                                         for (c = 0; c < 8; c++)
                                         {
                                         //        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-												putpixel(b, scrx + c, scry, ula_pal[table4bpp[ula_mode][dat][c]]);
+												putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
                                         }
                                         if (vid_linedbl)
                                         {
                                                 for (c = 0; c < 8; c++)
                                                 {
                                                 //        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-													putpixel(b, scrx + c, scry + 1, ula_pal[table4bpp[ula_mode][dat][c]]);
+													putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
 												}
                                         }
                                         break;
@@ -692,14 +789,14 @@ void video_poll(int clocks)
                                         for (c = 0; c < 16; c++)
                                         {
                                         //        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-											putpixel(b, scrx + c, scry, ula_pal[table4bpp[ula_mode][dat][c]]);
+											putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
 										}
                                         if (vid_linedbl)
                                         {
                                                 for (c = 0;c < 16; c++)
                                                 {
                                                 //        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-													putpixel(b, scrx + c, scry + 1, ula_pal[table4bpp[ula_mode][dat][c]]);
+													putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
 												}
                                         }
                                         break;

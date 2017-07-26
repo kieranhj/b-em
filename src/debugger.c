@@ -623,6 +623,14 @@ void debugger_do()
 										debug_out(outs);
 										sprintf(outs, "     8=%06X   9=%06X  10=%06X  11=%06X  12=%06X  13=%06X  14=%06X  15=%06X\n", nula_collook[8], nula_collook[9], nula_collook[10], nula_collook[11], nula_collook[12], nula_collook[13], nula_collook[14], nula_collook[15]);
 										debug_out(outs);
+										sprintf(outs, "    NULA flash :\n");
+										debug_out(outs);
+										sprintf(outs, "     %01X%01X%01X%01X%01X%01X%01X%01X\n", nula_flash[0], nula_flash[1], nula_flash[2], nula_flash[3], nula_flash[4], nula_flash[5], nula_flash[6], nula_flash[7]);
+										debug_out(outs);
+										sprintf(outs, "    NULA registers :\n");
+										debug_out(outs);
+										sprintf(outs, "     Palette Mode=%01X  Horizontal Offset=%01X  Left Blank Size=%01X  Disable=%01X  Attribute Mode=%01X  Attribute Text=%01X\n", nula_palette_mode, nula_horizontal_offset, nula_left_blank, nula_disable, nula_attribute_mode, nula_attribute_text);
+										debug_out(outs);
 								}
                                 if (!strncasecmp(&ins[d],"sound",5))
                                 {

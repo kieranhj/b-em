@@ -142,9 +142,9 @@ void videoula_write(uint16_t addr, uint8_t val)
 			}
 			ula_ctrl = val;
 			ula_mode = (ula_ctrl >> 2) & 3;
-			if (val & 2)         crtc_mode = 0;
-			else if (val & 0x10) crtc_mode = 1;
-			else               crtc_mode = 2;
+			if (val & 2)         crtc_mode = 0;		// Teletext
+			else if (val & 0x10) crtc_mode = 1;		// High frequency
+			else               crtc_mode = 2;		// Low frequency
 			//                printf("ULAmode %i\n",ulamode);
 		}
 		break;
@@ -767,52 +767,107 @@ void video_poll(int clocks)
                                         mode7_render(dat & 0x7F);
                                         break;
                                         case 1:
-                                        if (scrx < firstx)      firstx = scrx;
-                                        if ((scrx + 8) > lastx) lastx  = scrx + 8;
-                                        for (c = 0; c < 8; c++)
-                                        {
-                                        //        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-												putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
-                                        }
-                                        if (vid_linedbl)
-                                        {
-                                                for (c = 0; c < 8; c++)
-                                                {
-                                                //        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-													putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+										{
+											if (scrx < firstx)      firstx = scrx;
+											if ((scrx + 8) > lastx) lastx = scrx + 8;
+											if (nula_attribute_mode && ula_mode > 1)
+											{
+												if (ula_mode == 3)
+												{
+													// 1bpp
+													int attribute = ((dat & 3) << 2);
+													float pc = 0.0f;
+													for (c = 0; c < 8; c++, pc += 0.75f)
+													{
+														//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+														int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
+														putpixel(b, scrx + c, scry, output);
+														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+													}
 												}
-                                        }
+												else
+												{
+													int attribute = (((dat & 16) >> 1) | ((dat & 1) << 2));
+													float pc = 0.0f;
+													for (c = 0; c < 8; c++, pc += 0.75f)
+													{
+														//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+														int a = 3 - ((int)pc) / 2;
+
+														int output = ula_pal[attribute | ((dat >> (a+3)) & 2) | ((dat >> a) & 1)];
+
+														putpixel(b, scrx + c, scry, output);
+														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+													}
+												}
+											}
+											else
+											{
+												// Original pixel logic
+												for (c = 0; c < 8; c++)
+												{
+													//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+													putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+												}
+												if (vid_linedbl)
+												{
+													for (c = 0; c < 8; c++)
+													{
+														//        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+														putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+													}
+												}
+											}
+										}
                                         break;
                                         case 2:
-                                        if (scrx < firstx)       firstx = scrx;
-                                        if ((scrx + 16) > lastx) lastx  = scrx + 16;
-                                        for (c = 0; c < 16; c++)
-                                        {
-                                        //        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-											putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
-										}
-                                        if (vid_linedbl)
-                                        {
-                                                for (c = 0;c < 16; c++)
-                                                {
-                                                //        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-													putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+										{
+											if (scrx < firstx)       firstx = scrx;
+											if ((scrx + 16) > lastx) lastx = scrx + 16;
+											if (nula_attribute_mode && ula_mode > 1)
+											{
+												// In low frequency clock can only have 1bpp modes
+												int attribute = ((dat & 3) << 2);
+												float pc = 0.0f;
+												for (c = 0; c < 16; c++, pc += 0.375f)
+												{
+													//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+													int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
+													putpixel(b, scrx + c, scry, output);
+													if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
 												}
-                                        }
+											}
+											else
+											{
+												for (c = 0; c < 16; c++)
+												{
+													//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+													putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+												}
+												if (vid_linedbl)
+												{
+													for (c = 0; c < 16; c++)
+													{
+														//        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+														putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+													}
+												}
+											}
+										}
                                         break;
                                 }
                                 if (cdraw)
                                 {
                                         if (cursoron && (ula_ctrl & cursorlook[cdraw]))
                                         {
-                                                for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
-                                                {
+											for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
+                                            {
                                                 //        b->line[scry][scrx + c] = inverttbl[b->line[scry][scrx + c]];
 													putpixel(b, scrx + c, scry, getpixel(b, scrx + c, scry) ^ colwhite);
-												}
+											}
                                                 if (vid_linedbl)
                                                 {
-                                                        for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
+													for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
                                                         {
                                                         //        b->line[scry + 1][scrx + c] = inverttbl[b->line[scry + 1][scrx + c]];
 															putpixel(b, scrx + c, scry + 1, getpixel(b, scrx + c, scry + 1) ^ colwhite);

@@ -775,14 +775,32 @@ void video_poll(int clocks)
 												if (ula_mode == 3)
 												{
 													// 1bpp
-													int attribute = ((dat & 3) << 2);
-													float pc = 0.0f;
-													for (c = 0; c < 8; c++, pc += 0.75f)
+													if (nula_attribute_text)
 													{
-														//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-														int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
-														putpixel(b, scrx + c, scry, output);
-														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+														int attribute = ((dat & 7) << 1);
+														float pc = 0.0f;
+														for (c = 0; c < 7; c++, pc += 0.75f)
+														{
+															//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+															int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
+															putpixel(b, scrx + c, scry, output);
+															if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+														}
+														// Very loose approximation of the text attribute mode
+														putpixel(b, scrx + 7, scry, ula_pal[0]);
+														if (vid_linedbl)putpixel(b, scrx + 7, scry + 1, ula_pal[0]);
+													}
+													else
+													{
+														int attribute = ((dat & 3) << 2);
+														float pc = 0.0f;
+														for (c = 0; c < 8; c++, pc += 0.75f)
+														{
+															//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+															int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
+															putpixel(b, scrx + c, scry, output);
+															if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+														}
 													}
 												}
 												else
@@ -827,14 +845,39 @@ void video_poll(int clocks)
 											if (nula_attribute_mode && ula_mode > 1)
 											{
 												// In low frequency clock can only have 1bpp modes
-												int attribute = ((dat & 3) << 2);
-												float pc = 0.0f;
-												for (c = 0; c < 16; c++, pc += 0.375f)
+												if (nula_attribute_text)
 												{
-													//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-													int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
-													putpixel(b, scrx + c, scry, output);
-													if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+													int attribute = ((dat & 7) << 1);
+													float pc = 0.0f;
+													for (c = 0; c < 14; c++, pc += 0.375f)
+													{
+														//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+														int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
+														putpixel(b, scrx + c, scry, output);
+														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+													}
+
+													// Very loose approximation of the text attribute mode
+													putpixel(b, scrx + 14, scry, ula_pal[0]);
+													putpixel(b, scrx + 15, scry, ula_pal[0]);
+
+													if (vid_linedbl)
+													{
+														putpixel(b, scrx + 14, scry + 1, ula_pal[0]);
+														putpixel(b, scrx + 15, scry + 1, ula_pal[0]);
+													}
+												}
+												else
+												{
+													int attribute = ((dat & 3) << 2);
+													float pc = 0.0f;
+													for (c = 0; c < 16; c++, pc += 0.375f)
+													{
+														//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
+														int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
+														putpixel(b, scrx + c, scry, output);
+														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+													}
 												}
 											}
 											else

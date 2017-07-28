@@ -101,8 +101,6 @@ static int nula_pal_write_flag = 0;
 static uint8_t nula_pal_first_byte;
 uint8_t nula_flash[8];
 
-uint8_t nula_ctrl;
-
 uint8_t nula_palette_mode;
 uint8_t nula_horizontal_offset;
 uint8_t nula_left_blank;
@@ -216,11 +214,11 @@ void videoula_write(uint16_t addr, uint8_t val)
 				break;
 
 			case 6:
-				nula_attribute_mode = param & 1;			// TODO
+				nula_attribute_mode = param & 1;
 				break;
 
 			case 7:
-				nula_attribute_text = param & 1;			// TODO
+				nula_attribute_text = param & 1;
 				break;
 
 			case 8:
@@ -251,7 +249,7 @@ void videoula_write(uint16_t addr, uint8_t val)
 				// Commit the write to palette
 				int c = (nula_pal_first_byte >> 4);
 				int r = nula_pal_first_byte & 0x0f;
-				int g = val & 0xf0 >> 4;
+				int g = (val & 0xf0) >> 4;
 				int b = val & 0x0f;
 				nula_collook[c] = makecol(r | r << 4, g | g << 4, b | b << 4);
 				// Manual states colours 8-15 are set solid by default
@@ -281,7 +279,22 @@ void videoula_savestate(FILE *f)
         int c;
         putc(ula_ctrl,f);
         for (c=0;c<16;c++) putc(ula_palbak[c],f);
-		// TODO NULA save state
+		for (c = 0; c < 16; c++)
+		{
+			putc(getr32(nula_collook[c]),f);
+			putc(getg32(nula_collook[c]),f);
+			putc(getb32(nula_collook[c]),f);
+			putc(geta32(nula_collook[c]),f);
+		}
+		putc(nula_pal_write_flag, f);
+		putc(nula_pal_first_byte, f);
+		for (c = 0; c < 8; c++) putc(nula_flash[c], f);
+		putc(nula_palette_mode, f);
+		putc(nula_horizontal_offset, f);
+		putc(nula_left_blank, f);
+		putc(nula_disable, f);
+		putc(nula_attribute_mode, f);
+		putc(nula_attribute_text, f);
 }
 
 void videoula_loadstate(FILE *f)
@@ -290,6 +303,24 @@ void videoula_loadstate(FILE *f)
         videoula_write(0,getc(f));
         for (c=0;c<16;c++) videoula_write(1,getc(f)|(c<<4));
 		// TODO NULA load state
+		for (c = 0; c < 16; c++)
+		{
+			int r = getc(f);
+			int g = getc(f);
+			int b = getc(f);
+			int a = getc(f);
+
+			nula_collook[c] = makecol(r, g, b, a);
+		}
+		nula_pal_write_flag=getc(f);
+		nula_pal_first_byte = getc(f);
+		for (c = 0; c < 8; c++) nula_flash[c]=getc(f);
+		nula_palette_mode=getc(f);
+		nula_horizontal_offset=getc(f);
+		nula_left_blank=getc(f);
+		nula_disable=getc(f);
+		nula_attribute_mode=getc(f);
+		nula_attribute_text=getc(f);
 }
 
 

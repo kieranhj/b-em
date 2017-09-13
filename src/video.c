@@ -818,8 +818,8 @@ void video_poll(int clocks)
 															if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
 														}
 														// Very loose approximation of the text attribute mode
-														putpixel(b, scrx + 7, scry, ula_pal[0]);
-														if (vid_linedbl)putpixel(b, scrx + 7, scry + 1, ula_pal[0]);
+														putpixel(b, scrx + 7, scry, ula_pal[attribute]);
+														if (vid_linedbl)putpixel(b, scrx + 7, scry + 1, ula_pal[attribute]);
 													}
 													else
 													{
@@ -889,13 +889,13 @@ void video_poll(int clocks)
 													}
 
 													// Very loose approximation of the text attribute mode
-													putpixel(b, scrx + 14, scry, ula_pal[0]);
-													putpixel(b, scrx + 15, scry, ula_pal[0]);
+													putpixel(b, scrx + 14, scry, ula_pal[attribute]);
+													putpixel(b, scrx + 15, scry, ula_pal[attribute]);
 
 													if (vid_linedbl)
 													{
-														putpixel(b, scrx + 14, scry + 1, ula_pal[0]);
-														putpixel(b, scrx + 15, scry + 1, ula_pal[0]);
+														putpixel(b, scrx + 14, scry + 1, ula_pal[attribute]);
+														putpixel(b, scrx + 15, scry + 1, ula_pal[attribute]);
 													}
 												}
 												else

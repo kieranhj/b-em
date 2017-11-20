@@ -108,6 +108,21 @@ uint8_t nula_disable;
 uint8_t nula_attribute_mode;
 uint8_t nula_attribute_text;
 
+static int nula_left_cut;
+static int nula_left_edge;
+
+void nula_putpixel(BITMAP *bmp, int x, int y, int colour)
+{
+	if (crtc_mode && (nula_horizontal_offset || nula_left_blank) && (x < nula_left_cut || x >= nula_left_edge + (crtc[1] * crtc_mode * 8)))
+	{
+		putpixel(bmp, x, y, colblack);
+	}
+	else if( x < 1280 )
+	{
+		putpixel(bmp, x, y, colour);
+	}
+}
+
 
 void videoula_write(uint16_t addr, uint8_t val)
 {
@@ -169,11 +184,11 @@ void videoula_write(uint16_t addr, uint8_t val)
 				break;
 
 			case 2:
-				nula_horizontal_offset = param & 7;		// TODO
+				nula_horizontal_offset = param & 7;
 				break;
 
 			case 3:
-				nula_left_blank = param & 15;			// TODO
+				nula_left_blank = param & 15;
 				break;
 
 			case 4:
@@ -744,6 +759,7 @@ void video_poll(int clocks)
 //                        if (interlace) memset(b->line[(scry<<1)+interlline],0,scrx);
 //                        else           memset(b->line[scry],0,scrx);
 //                        scrx=0;
+
                         scry++;
                         if (scry >= 384)
                         {
@@ -771,24 +787,24 @@ void video_poll(int clocks)
                         {
                                 if ((crtc[8] & 0x30) == 0x30 || ((sc & 8) && !(ula_ctrl & 2)))
                                 {
-                                        for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
+                                        for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c+=4)
                                         {
                                         //        ((uint32_t *)b->line[scry])[(scrx + c) >> 2]=col0;
-												putpixel(b, scrx + c, scry, colblack);
-												putpixel(b, scrx + c + 1, scry, colblack);
-												putpixel(b, scrx + c + 2, scry, colblack);
-												putpixel(b, scrx + c + 3, scry, colblack);
+												nula_putpixel(b, scrx + c, scry, colblack);
+												nula_putpixel(b, scrx + c + 1, scry, colblack);
+												nula_putpixel(b, scrx + c + 2, scry, colblack);
+												nula_putpixel(b, scrx + c + 3, scry, colblack);
 
                                         }
                                         if (vid_linedbl)
                                         {
-                                                for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
+                                                for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c+=4)
                                                 {
                                                 //        ((uint32_t *)b->line[scry + 1])[(scrx + c) >> 2] = col0;
-														putpixel(b, scrx + c, scry + 1, colblack);
-														putpixel(b, scrx + c + 1, scry + 1, colblack);
-														putpixel(b, scrx + c + 2, scry + 1, colblack);
-														putpixel(b, scrx + c + 3, scry + 1, colblack);
+														nula_putpixel(b, scrx + c, scry + 1, colblack);
+														nula_putpixel(b, scrx + c + 1, scry + 1, colblack);
+														nula_putpixel(b, scrx + c + 2, scry + 1, colblack);
+														nula_putpixel(b, scrx + c + 3, scry + 1, colblack);
 												}
                                         }
                                 }
@@ -814,12 +830,12 @@ void video_poll(int clocks)
 														{
 															//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
 															int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
-															putpixel(b, scrx + c, scry, output);
-															if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+															nula_putpixel(b, scrx + c, scry, output);
+															if (vid_linedbl)nula_putpixel(b, scrx + c, scry + 1, output);
 														}
 														// Very loose approximation of the text attribute mode
-														putpixel(b, scrx + 7, scry, ula_pal[attribute]);
-														if (vid_linedbl)putpixel(b, scrx + 7, scry + 1, ula_pal[attribute]);
+														nula_putpixel(b, scrx + 7, scry, ula_pal[attribute]);
+														if (vid_linedbl)nula_putpixel(b, scrx + 7, scry + 1, ula_pal[attribute]);
 													}
 													else
 													{
@@ -829,8 +845,8 @@ void video_poll(int clocks)
 														{
 															//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
 															int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
-															putpixel(b, scrx + c, scry, output);
-															if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+															nula_putpixel(b, scrx + c, scry, output);
+															if (vid_linedbl)nula_putpixel(b, scrx + c, scry + 1, output);
 														}
 													}
 												}
@@ -845,8 +861,8 @@ void video_poll(int clocks)
 
 														int output = ula_pal[attribute | ((dat >> (a+3)) & 2) | ((dat >> a) & 1)];
 
-														putpixel(b, scrx + c, scry, output);
-														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+														nula_putpixel(b, scrx + c, scry, output);
+														if (vid_linedbl)nula_putpixel(b, scrx + c, scry + 1, output);
 													}
 												}
 											}
@@ -856,14 +872,14 @@ void video_poll(int clocks)
 												for (c = 0; c < 8; c++)
 												{
 													//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-													putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+													nula_putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
 												}
 												if (vid_linedbl)
 												{
 													for (c = 0; c < 8; c++)
 													{
 														//        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-														putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+														nula_putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
 													}
 												}
 											}
@@ -884,18 +900,18 @@ void video_poll(int clocks)
 													{
 														//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
 														int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
-														putpixel(b, scrx + c, scry, output);
-														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+														nula_putpixel(b, scrx + c, scry, output);
+														if (vid_linedbl)nula_putpixel(b, scrx + c, scry + 1, output);
 													}
 
 													// Very loose approximation of the text attribute mode
-													putpixel(b, scrx + 14, scry, ula_pal[attribute]);
-													putpixel(b, scrx + 15, scry, ula_pal[attribute]);
+													nula_putpixel(b, scrx + 14, scry, ula_pal[attribute]);
+													nula_putpixel(b, scrx + 15, scry, ula_pal[attribute]);
 
 													if (vid_linedbl)
 													{
-														putpixel(b, scrx + 14, scry + 1, ula_pal[attribute]);
-														putpixel(b, scrx + 15, scry + 1, ula_pal[attribute]);
+														nula_putpixel(b, scrx + 14, scry + 1, ula_pal[attribute]);
+														nula_putpixel(b, scrx + 15, scry + 1, ula_pal[attribute]);
 													}
 												}
 												else
@@ -906,8 +922,8 @@ void video_poll(int clocks)
 													{
 														//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
 														int output = ula_pal[attribute | (dat >> (7 - (int)pc) & 1)];
-														putpixel(b, scrx + c, scry, output);
-														if (vid_linedbl)putpixel(b, scrx + c, scry + 1, output);
+														nula_putpixel(b, scrx + c, scry, output);
+														if (vid_linedbl)nula_putpixel(b, scrx + c, scry + 1, output);
 													}
 												}
 											}
@@ -916,14 +932,14 @@ void video_poll(int clocks)
 												for (c = 0; c < 16; c++)
 												{
 													//        b->line[scry][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-													putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+													nula_putpixel(b, scrx + c, scry, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
 												}
 												if (vid_linedbl)
 												{
 													for (c = 0; c < 16; c++)
 													{
 														//        b->line[scry + 1][scrx + c] = ula_pal[table4bpp[ula_mode][dat][c]];
-														putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
+														nula_putpixel(b, scrx + c, scry + 1, nula_palette_mode ? nula_collook[table4bpp[ula_mode][dat][c]] : ula_pal[table4bpp[ula_mode][dat][c]]);
 													}
 												}
 											}
@@ -937,14 +953,14 @@ void video_poll(int clocks)
 											for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
                                             {
                                                 //        b->line[scry][scrx + c] = inverttbl[b->line[scry][scrx + c]];
-													putpixel(b, scrx + c, scry, getpixel(b, scrx + c, scry) ^ colwhite);
+													nula_putpixel(b, scrx + c, scry, getpixel(b, scrx + c, scry) ^ colwhite);
 											}
                                                 if (vid_linedbl)
                                                 {
 													for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
                                                         {
                                                         //        b->line[scry + 1][scrx + c] = inverttbl[b->line[scry + 1][scrx + c]];
-															putpixel(b, scrx + c, scry + 1, getpixel(b, scrx + c, scry + 1) ^ colwhite);
+															nula_putpixel(b, scrx + c, scry + 1, getpixel(b, scrx + c, scry + 1) ^ colwhite);
 														}
                                                 }
                                         }
@@ -968,10 +984,10 @@ void video_poll(int clocks)
                                 for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c+=4)
                                 {
                                 //        *((uint32_t *)&b->line[scry][scrx + c]) = col0;
-									putpixel(b, scrx + c, scry, colblack);
-									putpixel(b, scrx + c + 1, scry, colblack);
-									putpixel(b, scrx + c + 2, scry, colblack);
-									putpixel(b, scrx + c + 3, scry, colblack);
+									nula_putpixel(b, scrx + c, scry, colblack);
+									nula_putpixel(b, scrx + c + 1, scry, colblack);
+									nula_putpixel(b, scrx + c + 2, scry, colblack);
+									nula_putpixel(b, scrx + c + 3, scry, colblack);
 								}
 
                                 if (vid_linedbl)
@@ -979,10 +995,10 @@ void video_poll(int clocks)
                                         for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c += 4)
                                         {
                                         //        *((uint32_t *)&b->line[scry + 1][scrx + c])=col0;
-											putpixel(b, scrx + c, scry + 1, colblack);
-											putpixel(b, scrx + c + 1, scry + 1, colblack);
-											putpixel(b, scrx + c + 2, scry + 1, colblack);
-											putpixel(b, scrx + c + 3, scry + 1, colblack);
+											nula_putpixel(b, scrx + c, scry + 1, colblack);
+											nula_putpixel(b, scrx + c + 1, scry + 1, colblack);
+											nula_putpixel(b, scrx + c + 2, scry + 1, colblack);
+											nula_putpixel(b, scrx + c + 3, scry + 1, colblack);
 										}
                                 }
                                 if (!crtc_mode)
@@ -990,20 +1006,20 @@ void video_poll(int clocks)
                                         for (c = 0;c < 16;c += 4)
                                         {
                                         //        *((uint32_t *)&b->line[scry][scrx + c + 16]) = col0;
-											putpixel(b, scrx + c + 16, scry, colblack);
-											putpixel(b, scrx + c + 16 + 1, scry, colblack);
-											putpixel(b, scrx + c + 16 + 2, scry, colblack);
-											putpixel(b, scrx + c + 16 + 3, scry, colblack);
+											nula_putpixel(b, scrx + c + 16, scry, colblack);
+											nula_putpixel(b, scrx + c + 16 + 1, scry, colblack);
+											nula_putpixel(b, scrx + c + 16 + 2, scry, colblack);
+											nula_putpixel(b, scrx + c + 16 + 3, scry, colblack);
 										}
                                         if (vid_linedbl)
                                         {
                                                 for (c = 0; c < 16; c += 4)
                                                 {
                                                 //       *((uint32_t *)&b->line[scry + 1][scrx + c + 16]) = col0;
-													putpixel(b, scrx + c + 16, scry + 1, colblack);
-													putpixel(b, scrx + c + 16 + 1, scry + 1, colblack);
-													putpixel(b, scrx + c + 16 + 2, scry + 1, colblack);
-													putpixel(b, scrx + c + 16 + 3, scry + 1, colblack);
+													nula_putpixel(b, scrx + c + 16, scry + 1, colblack);
+													nula_putpixel(b, scrx + c + 16 + 1, scry + 1, colblack);
+													nula_putpixel(b, scrx + c + 16 + 2, scry + 1, colblack);
+													nula_putpixel(b, scrx + c + 16 + 3, scry + 1, colblack);
 												}
                                         }
                                 }
@@ -1015,14 +1031,14 @@ void video_poll(int clocks)
                                         for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
                                         {
                                         //        b->line[scry][scrx + c] = inverttbl[b->line[scry][scrx + c]];
-											putpixel(b, scrx + c, scry, getpixel(b, scrx + c, scry) ^ colwhite);
+											nula_putpixel(b, scrx + c, scry, getpixel(b, scrx + c, scry) ^ colwhite);
                                         }
                                         if (vid_linedbl)
                                         {
                                                 for (c = 0; c < ((ula_ctrl & 0x10) ? 8 : 16); c++)
                                                 {
                                                 //        b->line[scry + 1][scrx + c] = inverttbl[b->line[scry + 1][scrx + c]];
-													putpixel(b, scrx + c, scry + 1, getpixel(b, scrx + c, scry + 1) ^ colwhite);
+													nula_putpixel(b, scrx + c, scry + 1, getpixel(b, scrx + c, scry + 1) ^ colwhite);
                                                 }
                                         }
                                 }
@@ -1064,6 +1080,22 @@ void video_poll(int clocks)
                         mode7_heldp[1] = mode7_p[1];
 
                         hc = 0;
+
+						if (crtc_mode)
+						{
+							// NULA left edge
+							nula_left_edge = scrx + crtc_mode * 8;
+ 
+							// NULA left cut
+							nula_left_cut = nula_left_edge + nula_left_blank * crtc_mode * 8;
+
+							// NULA horizontal offset - "delay" the pixel clock
+							for (c = 0; c < nula_horizontal_offset * crtc_mode; c++, scrx++)
+							{
+								putpixel(b, scrx + crtc_mode * 8, scry, colblack);
+							}
+						}
+
                         if (sc == (crtc[11] & 31) || ((crtc[8] & 3) == 3 && sc == ((crtc[11] & 31) >> 1))) { con = 0; coff = 1; }
                         if (vadj)
                         {

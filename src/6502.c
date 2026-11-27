@@ -992,7 +992,7 @@ void m6502_exec()
                                 polltime(5);
                                 takeint=(interrupt && !p.i);
                                 break;
-
+#if 0 /* Super hackballs! Just comment out the illegal opcode for 6502 :) */
                                 case 0x33: /*Undocumented - RLA (),y*/
                                 temp=readmem(pc); pc++;
                                 addr=readmem(temp)+(readmem(temp+1)<<8);
@@ -1011,7 +1011,12 @@ void m6502_exec()
                                 setzn(a);
                                 takeint=(interrupt && !p.i);
                                 break;
-
+#else
+								case 0x33: /*NOP 1 cycle - undocumented on 65C02 in Master*/
+									polltime(1);
+									takeint = (interrupt && !p.i);
+									break;
+#endif
                                 case 0x34: /*Undocumented - NOP zp,x*/
                                 addr=readmem(pc); pc++;
                                 readmem((addr+x)&0xFF);

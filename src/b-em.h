@@ -17,7 +17,7 @@
 
 //#define printf rpclog
 
-#define B_EM_VERSION "B-em v2.2"
+#define B_EM_VERSION "B-em v2.2 kieranhj"
 
 void updatewindowsize(int x, int y);
 

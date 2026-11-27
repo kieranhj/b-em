@@ -489,7 +489,18 @@ void debugger_do()
                         debug = 1;
                         sprintf(outs, "    Break at %04X\n", pc);
                         debug_out(outs);
-                }
+
+						sprintf(outs, "    CRTC registers :\n");
+						debug_out(outs);
+						sprintf(outs, "    Index=%i\n", crtc_i);
+						debug_out(outs);
+						sprintf(outs, "    R0 =%02X  R1 =%02X  R2 =%02X  R3 =%02X  R4 =%02X  R5 =%02X  R6 =%02X  R7 =%02X  R8 =%02X\n", crtc[0], crtc[1], crtc[2], crtc[3], crtc[4], crtc[5], crtc[6], crtc[7], crtc[8]);
+						debug_out(outs);
+						sprintf(outs, "    R9 =%02X  R10=%02X  R11=%02X  R12=%02X  R13=%02X  R14=%02X  R15=%02X  R16=%02X  R17=%02X\n", crtc[9], crtc[10], crtc[11], crtc[12], crtc[13], crtc[14], crtc[15], crtc[16], crtc[17]);
+						debug_out(outs);
+						sprintf(outs, "    VC=%i SC=%i HC=%i vadj=%d MA=%04X scrx=%i scry=%d\n", vc, sc, hc, vadj, ma, scrx, scry);
+						debug_out(outs);
+				}
         }
         if (!debug) return;
 //        if (!opcode) printf("BRK at %04X\n",pc);
@@ -602,7 +613,7 @@ void debugger_do()
                                         debug_out(outs);
                                         sprintf(outs, "    R9 =%02X  R10=%02X  R11=%02X  R12=%02X  R13=%02X  R14=%02X  R15=%02X  R16=%02X  R17=%02X\n", crtc[9], crtc[10], crtc[11], crtc[12], crtc[13], crtc[14], crtc[15], crtc[16], crtc[17]);
                                         debug_out(outs);
-										sprintf(outs, "    VC=%i SC=%i HC=%i MA=%04X scrx=%i scry=%d\n", vc, sc, hc, ma, scrx, scry);
+										sprintf(outs, "    VC=%i SC=%i HC=%i vadj=%d MA=%04X scrx=%i scry=%d\n", vc, sc, hc, vadj, ma, scrx, scry);
 										debug_out(outs);
                                 }
                                 if (!strncasecmp(&ins[d],"vidproc",7))

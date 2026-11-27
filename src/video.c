@@ -132,35 +132,35 @@ void videoula_write(uint16_t addr, uint8_t val)
 		if (nula_disable)
 			addr &= ~2;			// nuke additional NULA addresses
 
-		switch (addr & 3)
-		{
-		case 0:
-		{
-			//        printf("ULA write %04X %02X\n",addr,val);
-			if ((ula_ctrl ^ val) & 1)
-			{
-				if (val & 1)
-				{
-					for (c = 0; c < 16; c++)
-					{
-						if ((ula_palbak[c] & 8) && nula_flash[c-8]) ula_pal[c] = nula_collook[ula_palbak[c] & 15];
-						else                 ula_pal[c] = nula_collook[(ula_palbak[c] & 15) ^ 7];
-					}
-				}
-				else
-				{
-					for (c = 0; c < 16; c++)
-						ula_pal[c] = nula_collook[(ula_palbak[c] & 15) ^ 7];
-				}
-			}
-			ula_ctrl = val;
-			ula_mode = (ula_ctrl >> 2) & 3;
-			if (val & 2)         crtc_mode = 0;		// Teletext
-			else if (val & 0x10) crtc_mode = 1;		// High frequency
-			else               crtc_mode = 2;		// Low frequency
-			//                printf("ULAmode %i\n",ulamode);
-		}
-		break;
+        switch (addr & 3)
+        {
+        case 0:
+        {
+                //        printf("ULA write %04X %02X\n",addr,val);
+                if ((ula_ctrl ^ val) & 1)
+                {
+                        if (val & 1)
+                        {
+                                for (c = 0; c < 16; c++)
+                                {
+                                        if ((ula_palbak[c] & 8) && nula_flash[c&7]) ula_pal[c] = nula_collook[ula_palbak[c] & 15];
+                                        else                 ula_pal[c] = nula_collook[(ula_palbak[c] & 15) ^ 7];
+                                }
+                        }
+                        else
+                        {
+                                for (c = 0; c < 16; c++)
+                                        ula_pal[c] = nula_collook[(ula_palbak[c] & 15) ^ 7];
+                        }
+                }
+                ula_ctrl = val;
+                ula_mode = (ula_ctrl >> 2) & 3;
+                if (val & 2)         crtc_mode = 0;    // Teletext
+                else if (val & 0x10) crtc_mode = 1;    // High frequency
+                else               crtc_mode = 2;      // Low frequency
+                //                printf("ULAmode %i\n",ulamode);
+        }
+        break;
 
 		case 1:
 		{
@@ -744,6 +744,13 @@ void video_poll(int clocks)
                 vidclocks++;
                 oddclock = !oddclock;
                 if (!(ula_ctrl & 0x10) && !oddclock) continue;
+
+				// Hack for Tom Seddon 160x128 screen modes?
+				if (scrx >= 1280)
+				{
+					scry++;
+					scrx = 0;
+				}
 
                 if (hc == crtc[1])
                 {
